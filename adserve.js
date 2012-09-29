@@ -17,13 +17,40 @@ app.get('/ad', function(request, response) {
     return;
   }
   var url = hypeUrl + params.appId + "/" + params.userId;
-  http.request(url, handleHyperionResponse(doAdnetRequest(redirectToAd(response)))).end();
+  http.request(url, handleHyperionResponse(doAdnetRequest(bodyParser(function(body) {
+    response.end(body);
+  })))).end();
 });
 
 app.get('/adnet', function(request, response) {
-  util.log(request.connection.remoteAddress + ": " + request.method + " " + request.url);
-  response.writeHead(204, {'X-HREF': "http://placekitten.com/200/300"});
-  response.end();
+  logRequest(request);
+  response.writeHead(200, {'X-HREF': "http://placekitten.com/200/300"});
+  var data = {"image": "http://placekitten.com/200/300", "href": "http://en.wikipedia.org/wiki/Kitten"};
+  response.end(JSON.stringify(data));
+});
+
+app.get('/ad/img', function(request, response) {
+  logRequest(request);
+  var params = parseQuery(request.url);
+  if (invalidateRequest(params, response)) {
+    return;
+  }
+  var url = hypeUrl + params.appId + "/" + params.userId;
+  http.request(url, handleHyperionResponse(doAdnetRequest(redirectToAd(response)))).end();
+});
+
+app.get('/ad/href', function(request, response) {
+  logRequest(request);
+  var params = parseQuery(request.url);
+  if (invalidateRequest(params)) {
+    return;
+  }
+  var url = hypeUrl + params.appId + "/" + params.userId;
+  http.request(url, handleHyperionResponse(doAdnetRequest(bodyParser(function(body) {
+    var data = JSON.parse(body);
+    response.writeHead(200);
+    response.end(data.href);
+  })))).end();
 });
 
 app.listen(port);
@@ -73,7 +100,26 @@ function doAdnetRequest(callback) {
 
 function redirectToAd(response) {
   return function(adnet_response) {
-    response.writeHead(302, {'Location': adnet_response.headers["x-href"]});
-    response.end();
+    var body = "";
+    adnet_response.on('data', function(chunk) {
+      body += chunk;
+    });
+    adnet_response.on('end', function() {
+      var data = JSON.parse(body);
+      response.writeHead(302, {'Location': data.image});
+      response.end();
+    });
+  };
+}
+
+function bodyParser(callback) {
+  return function(adnet_response) {
+    var body = "";
+    adnet_response.on('data', function(chunk) {
+      body += chunk;
+    });
+    adnet_response.on('end', function() {
+      callback(body);
+    });
   };
 }
