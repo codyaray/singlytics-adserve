@@ -93,8 +93,9 @@ function handleHyperionResponse(callback) {
 
 function doAdnetRequest(callback) {
   return function(body) {
-    var demographics = JSON.parse(body).demographics;
-    var url = adnetUrl + require('querystring').stringify(demographics);
+    var parsedBody = JSON.parse(body)
+    var demographics = parsedBody.demographics;
+    var url = adnetUrl + require('querystring').stringify(demographics) + '&keywords=' + parsedBody.keywords.join();
     util.log("Adnet URL: " + url);
     var adnet_request = http.request(url, callback).on('error', function(e) {
       util.log('Problem with request to adnet: ' + e.message);
