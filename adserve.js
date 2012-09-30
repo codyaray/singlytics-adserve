@@ -36,7 +36,11 @@ app.get('/ad/img', function(request, response) {
     return;
   }
   var url = hypeUrl + params.appId + "/" + params.userId;
-  http.request(url, handleHyperionResponse(doAdnetRequest(redirectToAd(response)))).end();
+  http.request(url, handleHyperionResponse(doAdnetRequest(bodyParser(function(body) {
+    var data = JSON.parse(body);
+    response.writeHead(302, {'Location': data.image});
+    response.end();
+  })))).end();
 });
 
 app.get('/ad/href', function(request, response) {
@@ -48,8 +52,8 @@ app.get('/ad/href', function(request, response) {
   var url = hypeUrl + params.appId + "/" + params.userId;
   http.request(url, handleHyperionResponse(doAdnetRequest(bodyParser(function(body) {
     var data = JSON.parse(body);
-    response.writeHead(200);
-    response.end(data.href);
+    response.writeHead(302, {'Location': data.href});
+    response.end();
   })))).end();
 });
 
@@ -95,20 +99,6 @@ function doAdnetRequest(callback) {
     var adnet_request = http.request(url, callback).on('error', function(e) {
       util.log('Problem with request to adnet: ' + e.message);
     }).end();
-  };
-}
-
-function redirectToAd(response) {
-  return function(adnet_response) {
-    var body = "";
-    adnet_response.on('data', function(chunk) {
-      body += chunk;
-    });
-    adnet_response.on('end', function() {
-      var data = JSON.parse(body);
-      response.writeHead(302, {'Location': data.image});
-      response.end();
-    });
   };
 }
 
